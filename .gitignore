@@ -17,3 +17,9 @@ dist/
 
 # Docker
 postgres_data/
+
+# opencode
+openspec/
+.agents/
+.atl/
+skills-lock.json

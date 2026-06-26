@@ -1,6 +1,6 @@
 # CyberShield AI
 
-MVP de detección y respuesta con login JWT y dashboard protegido.
+MVP de detección.
 
 ## Credenciales demo
 

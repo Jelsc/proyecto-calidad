@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { clearStoredAuth, getStoredAuth, loginWithCredentials, requestJson } from './api'
 import Sidebar from './components/Sidebar'
-import { sidebarModules } from './navigation'
 import {
   authSummary,
   buildIncidents,
@@ -21,17 +21,42 @@ import ResponseEnginePage from './pages/ResponseEnginePage'
 import IncidentsEvidencePage from './pages/IncidentsEvidencePage'
 import DashboardReportsPage from './pages/DashboardReportsPage'
 import SupportTablesPage from './pages/SupportTablesPage'
+import LoginPage from './pages/LoginPage'
+
+const sectionFromPath = {
+  '/': 'overview',
+  '/resumen': 'overview',
+  '/auth-users': 'auth-users',
+  '/data-ingestion': 'data-ingestion',
+  '/ml-pipeline': 'ml-pipeline',
+  '/response-engine': 'response-engine',
+  '/incidents-evidence': 'incidents-evidence',
+  '/dashboard-reports': 'dashboard-reports',
+  '/support-tables': 'support-tables',
+}
+
+const pathFromSection = {
+  overview: '/resumen',
+  'auth-users': '/auth-users',
+  'data-ingestion': '/data-ingestion',
+  'ml-pipeline': '/ml-pipeline',
+  'response-engine': '/response-engine',
+  'incidents-evidence': '/incidents-evidence',
+  'dashboard-reports': '/dashboard-reports',
+  'support-tables': '/support-tables',
+}
 
 const loginSeed = { username: '', password: '' }
 
 export default function App() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [health, setHealth] = useState('cargando')
   const [authState, setAuthState] = useState({ status: 'checking', user: null })
   const [loginForm, setLoginForm] = useState(loginSeed)
   const [loginBusy, setLoginBusy] = useState(false)
   const [authError, setAuthError] = useState('')
   const [sessionNote, setSessionNote] = useState('')
-  const [activeSection, setActiveSection] = useState(sidebarModules[0].items[0].id)
   const [dashboardSummary, setDashboardSummary] = useState(null)
   const [recentIncidents, setRecentIncidents] = useState([])
   const [trafficEvents, setTrafficEvents] = useState([])
@@ -40,6 +65,7 @@ export default function App() {
   const [trainingResult, setTrainingResult] = useState(null)
   const [dashboardBusy, setDashboardBusy] = useState(false)
   const contentRef = useRef(null)
+  const activeSection = sectionFromPath[location.pathname] || 'overview'
 
   useEffect(() => {
     requestJson('/api/health/', { auth: false })
@@ -71,6 +97,7 @@ export default function App() {
         setAuthState({ status: 'unauthenticated', user: null })
         setSessionNote('La sesión expiró. Inicia sesión nuevamente.')
         setAuthError(error.message)
+        navigate('/login', { replace: true })
       })
 
     return () => {
@@ -118,7 +145,7 @@ export default function App() {
   }
 
   function handleNavigate(sectionId) {
-    setActiveSection(sectionId)
+    navigate(pathFromSection[sectionId] || '/resumen')
   }
 
   useEffect(() => {
@@ -155,10 +182,12 @@ export default function App() {
       setAuthState({ status: 'authenticated', user: normalizeUser(profile) })
       setLoginForm(loginSeed)
       setSessionNote('Inicio de sesión exitoso.')
+      navigate('/resumen', { replace: true })
     } catch (error) {
       clearStoredAuth()
       setAuthState({ status: 'unauthenticated', user: null })
       setAuthError(error.message || 'No fue posible iniciar sesión.')
+      navigate('/login', { replace: true })
     } finally {
       setLoginBusy(false)
     }
@@ -176,7 +205,7 @@ export default function App() {
     setDetectionResult(null)
     setTrainingResult(null)
     setDashboardBusy(false)
-    setActiveSection(sidebarModules[0].items[0].id)
+    navigate('/login', { replace: true })
   }
 
   function handleDetectionResult(type, result) {
@@ -191,129 +220,25 @@ export default function App() {
     onDataRefresh: refreshWorkspaceData,
   }
 
-  function renderPage() {
-    switch (activeSection) {
-      case 'overview':
-        return (
-          <OverviewPage
-            authSummary={authSummary}
-            dashboardBusy={dashboardBusy}
-            dashboardSummary={dashboardSummary}
-            health={health}
-            incidents={incidents}
-            kpis={kpis}
-            sessionNote={sessionNote}
-            signals={signals}
-            supportPanels={supportPanels}
-            supportTables={supportTables}
-            user={user}
-            onRefresh={refreshWorkspaceData}
-          />
-        )
-      case 'auth-users':
-        return <AuthUsersPage authSummary={authSummary} health={health} user={user} />
-      case 'data-ingestion':
-        return <DataIngestionPage trafficEvents={trafficEvents} {...sharedPageProps} />
-      case 'ml-pipeline':
-        return (
-          <MlPipelinePage
-            detectionResult={detectionResult}
-            trafficEvents={trafficEvents}
-            trainingResult={trainingResult}
-            onDetectionResult={handleDetectionResult}
-            {...sharedPageProps}
-          />
-        )
-      case 'response-engine':
-        return <ResponseEnginePage recentIncidents={recentIncidents} responseActions={responseActions} {...sharedPageProps} />
-      case 'incidents-evidence':
-        return (
-          <IncidentsEvidencePage
-            dashboardSummary={dashboardSummary}
-            trafficEvents={trafficEvents}
-            recentIncidents={recentIncidents}
-            {...sharedPageProps}
-          />
-        )
-      case 'dashboard-reports':
-        return (
-          <DashboardReportsPage
-            dashboardSummary={dashboardSummary}
-            detectionResult={detectionResult}
-            responseActions={responseActions}
-            recentIncidents={recentIncidents}
-            trainingResult={trainingResult}
-            trafficEvents={trafficEvents}
-          />
-        )
-      case 'support-tables':
-        return <SupportTablesPage />
-      default:
-        return (
-          <OverviewPage
-            authSummary={authSummary}
-            dashboardBusy={dashboardBusy}
-            dashboardSummary={dashboardSummary}
-            health={health}
-            incidents={incidents}
-            kpis={kpis}
-            sessionNote={sessionNote}
-            signals={signals}
-            supportPanels={supportPanels}
-            supportTables={supportTables}
-            user={user}
-            onRefresh={refreshWorkspaceData}
-          />
-        )
-    }
-  }
-
   if (!authenticated) {
     return (
-      <main className="auth-shell">
-        <section className="auth-card">
-          <div className="panel-head compact">
-            <div>
-              <p className="eyebrow">CyberShield AI</p>
-              <h2>Acceso</h2>
-            </div>
-            <span className={`pill ${health === 'sin conexión' ? 'danger' : 'success'}`}>{health}</span>
-          </div>
-
-          <form className="auth-form" onSubmit={handleLogin}>
-            <label>
-              <span>Usuario</span>
-              <input
-                autoComplete="username"
-                autoFocus
-                value={loginForm.username}
-                onChange={(event) => setLoginForm({ ...loginForm, username: event.target.value })}
-                placeholder="demo"
-                required
-              />
-            </label>
-
-            <label>
-              <span>Contraseña</span>
-              <input
-                autoComplete="current-password"
-                type="password"
-                value={loginForm.password}
-                onChange={(event) => setLoginForm({ ...loginForm, password: event.target.value })}
-                placeholder="••••••••"
-                required
-              />
-            </label>
-
-            {authError ? <div className="alert">{authError}</div> : null}
-            {sessionNote ? <div className="hint">{sessionNote}</div> : null}
-
-            <button className="primary-button wide" disabled={loginBusy} type="submit">
-              {loginBusy ? 'Iniciando sesión…' : 'Entrar'}
-            </button>
-          </form>
-        </section>
-      </main>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <LoginPage
+              authError={authError}
+              health={health}
+              loginBusy={loginBusy}
+              loginForm={loginForm}
+              onLogin={handleLogin}
+              onLoginFormChange={setLoginForm}
+              sessionNote={sessionNote}
+            />
+          }
+        />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
     )
   }
 
@@ -331,7 +256,73 @@ export default function App() {
       />
 
       <section ref={contentRef} className="content">
-        {renderPage()}
+        <Routes>
+          <Route path="/" element={<Navigate to="/resumen" replace />} />
+          <Route path="/login" element={<Navigate to="/resumen" replace />} />
+          <Route
+            path="/resumen"
+            element={
+              <OverviewPage
+                authSummary={authSummary}
+                dashboardBusy={dashboardBusy}
+                dashboardSummary={dashboardSummary}
+                health={health}
+                incidents={incidents}
+                kpis={kpis}
+                sessionNote={sessionNote}
+                signals={signals}
+                supportPanels={supportPanels}
+                supportTables={supportTables}
+                user={user}
+                onRefresh={refreshWorkspaceData}
+              />
+            }
+          />
+          <Route path="/auth-users" element={<AuthUsersPage authSummary={authSummary} health={health} user={user} />} />
+          <Route path="/data-ingestion" element={<DataIngestionPage trafficEvents={trafficEvents} {...sharedPageProps} />} />
+          <Route
+            path="/ml-pipeline"
+            element={
+              <MlPipelinePage
+                detectionResult={detectionResult}
+                trafficEvents={trafficEvents}
+                trainingResult={trainingResult}
+                onDetectionResult={handleDetectionResult}
+                {...sharedPageProps}
+              />
+            }
+          />
+          <Route
+            path="/response-engine"
+            element={<ResponseEnginePage recentIncidents={recentIncidents} responseActions={responseActions} {...sharedPageProps} />}
+          />
+          <Route
+            path="/incidents-evidence"
+            element={
+              <IncidentsEvidencePage
+                dashboardSummary={dashboardSummary}
+                trafficEvents={trafficEvents}
+                recentIncidents={recentIncidents}
+                {...sharedPageProps}
+              />
+            }
+          />
+          <Route
+            path="/dashboard-reports"
+            element={
+              <DashboardReportsPage
+                dashboardSummary={dashboardSummary}
+                detectionResult={detectionResult}
+                responseActions={responseActions}
+                recentIncidents={recentIncidents}
+                trainingResult={trainingResult}
+                trafficEvents={trafficEvents}
+              />
+            }
+          />
+          <Route path="/support-tables" element={<SupportTablesPage />} />
+          <Route path="*" element={<Navigate to="/resumen" replace />} />
+        </Routes>
       </section>
     </main>
   )
