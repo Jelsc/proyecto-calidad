@@ -34,9 +34,4 @@ export const sidebarModules = [
     label: 'Reportes',
     items: [{ id: 'dashboard-reports', label: 'Indicadores y exportación' }],
   },
-  {
-    id: 'support-tables',
-    label: 'Apoyos',
-    items: [{ id: 'support-tables', label: 'Tablas auxiliares' }],
-  },
 ]

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { requestJson } from '../api'
 import { initialResponseForm, responseActionOptions } from '../utils/helpers'
 
-export default function ResponseEnginePage({ recentIncidents, responseActions, onDataRefresh }) {
+export default function ResponseEnginePage({ recentIncidents = [], responseActions = [], onDataRefresh }) {
   const [form, setForm] = useState(initialResponseForm)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
@@ -61,7 +61,7 @@ export default function ResponseEnginePage({ recentIncidents, responseActions, o
                 <option value="">Seleccionar incidente</option>
                 {recentIncidents.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.id} - {item.type}
+                    {item.id} - {item.title}
                   </option>
                 ))}
               </select>

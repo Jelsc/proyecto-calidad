@@ -11,7 +11,6 @@ import {
   getIdentityTags,
   normalizeUser,
   supportPanels,
-  supportTables,
 } from './utils/helpers'
 import OverviewPage from './pages/OverviewPage'
 import AuthUsersPage from './pages/AuthUsersPage'
@@ -20,7 +19,6 @@ import MlPipelinePage from './pages/MlPipelinePage'
 import ResponseEnginePage from './pages/ResponseEnginePage'
 import IncidentsEvidencePage from './pages/IncidentsEvidencePage'
 import DashboardReportsPage from './pages/DashboardReportsPage'
-import SupportTablesPage from './pages/SupportTablesPage'
 import LoginPage from './pages/LoginPage'
 
 const sectionFromPath = {
@@ -32,7 +30,6 @@ const sectionFromPath = {
   '/response-engine': 'response-engine',
   '/incidents-evidence': 'incidents-evidence',
   '/dashboard-reports': 'dashboard-reports',
-  '/support-tables': 'support-tables',
 }
 
 const pathFromSection = {
@@ -43,7 +40,6 @@ const pathFromSection = {
   'response-engine': '/response-engine',
   'incidents-evidence': '/incidents-evidence',
   'dashboard-reports': '/dashboard-reports',
-  'support-tables': '/support-tables',
 }
 
 const loginSeed = { username: '', password: '' }
@@ -249,7 +245,6 @@ export default function App() {
         authSummary={authSummary}
         health={health}
         identityTags={identityTags}
-        supportTables={supportTables}
         onLogout={handleLogout}
         onNavigate={handleNavigate}
         user={user}
@@ -272,13 +267,15 @@ export default function App() {
                 sessionNote={sessionNote}
                 signals={signals}
                 supportPanels={supportPanels}
-                supportTables={supportTables}
                 user={user}
                 onRefresh={refreshWorkspaceData}
               />
             }
           />
-          <Route path="/auth-users" element={<AuthUsersPage authSummary={authSummary} health={health} user={user} />} />
+          <Route
+            path="/auth-users"
+            element={<AuthUsersPage authSummary={authSummary} health={health} identityTags={identityTags} user={user} />}
+          />
           <Route path="/data-ingestion" element={<DataIngestionPage trafficEvents={trafficEvents} {...sharedPageProps} />} />
           <Route
             path="/ml-pipeline"
@@ -320,7 +317,6 @@ export default function App() {
               />
             }
           />
-          <Route path="/support-tables" element={<SupportTablesPage />} />
           <Route path="*" element={<Navigate to="/resumen" replace />} />
         </Routes>
       </section>

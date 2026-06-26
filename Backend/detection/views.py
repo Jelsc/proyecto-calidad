@@ -8,7 +8,25 @@ from events.models import TrafficEvent
 
 from .models import DetectionResult
 from .serializers import DetectionResultSerializer
-from .model_service import DetectionModelNotReady, MIN_TRAINING_ROWS, predict, train_from_events
+from .model_service import ENGINE_VERSION, DetectionModelNotReady, MIN_TRAINING_ROWS, predict, train_from_events
+
+
+def build_detection_contract() -> dict:
+    return {
+        "routes": {
+            "train": "/api/detection/train/",
+            "simulate": "/api/detection/simulate/",
+        },
+        "model": {
+            "engine": ENGINE_VERSION,
+            "minimum_training_rows": MIN_TRAINING_ROWS,
+            "heuristics": False,
+        },
+        "readiness": {
+            "insufficient_rows_status": status.HTTP_409_CONFLICT,
+            "fallback": "none",
+        },
+    }
 
 
 def build_detection_payload(request_data: dict, event: TrafficEvent | None = None) -> dict:

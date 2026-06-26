@@ -84,16 +84,6 @@ export const initialResponseForm = {
   notes: '',
 }
 
-export const supportTables = [
-  'Roles',
-  'Niveles de riesgo',
-  'Tipos de anomalía',
-  'Tipos de acción',
-  'Parámetros del sistema',
-  'Logs de auditoría',
-  'Estados de incidente',
-]
-
 export const supportPanels = [
   {
     id: 'auth-users',

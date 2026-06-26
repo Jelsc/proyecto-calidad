@@ -1,11 +1,41 @@
-export default function DataIngestionPage({
-  form,
-  ingestionBusy,
-  ingestionNote,
-  onSubmit,
-  setForm,
-  trafficEvents,
-}) {
+import { useState } from 'react'
+import { requestJson } from '../api'
+import { initialTrafficEventForm, parseJsonInput, safeNumber, protocolOptions } from '../utils/helpers'
+
+export default function DataIngestionPage({ onDataRefresh, trafficEvents = [] }) {
+  const [form, setForm] = useState(initialTrafficEventForm)
+  const [ingestionBusy, setIngestionBusy] = useState(false)
+  const [ingestionNote, setIngestionNote] = useState('')
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setIngestionBusy(true)
+    setIngestionNote('')
+
+    try {
+      await requestJson('/api/events/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source_ip: form.sourceIp,
+          destination_ip: form.destinationIp,
+          protocol: form.protocol,
+          destination_port: safeNumber(form.destinationPort),
+          payload: parseJsonInput(form.payload, 'raw'),
+          metadata: parseJsonInput(form.metadata, 'note'),
+        }),
+      })
+
+      setForm(initialTrafficEventForm)
+      setIngestionNote('Evento registrado correctamente.')
+      await onDataRefresh()
+    } catch (error) {
+      setIngestionNote(error.message || 'No fue posible registrar el evento.')
+    } finally {
+      setIngestionBusy(false)
+    }
+  }
+
   return (
     <section className="panel workbench-card" id="data-ingestion" data-nav-section>
       <div className="panel-head compact">
@@ -18,8 +48,8 @@ export default function DataIngestionPage({
 
       <p className="muted">Carga datasets o eventos de red y persiste el tráfico para análisis posterior.</p>
 
-      <form className="module-form" onSubmit={onSubmit}>
-        <div className="form-grid">
+        <form className="module-form" onSubmit={handleSubmit}>
+          <div className="form-grid">
           <label>
             <span>IP origen</span>
             <input required value={form.sourceIp} onChange={(event) => setForm({ ...form, sourceIp: event.target.value })} placeholder="10.0.0.10" />
@@ -31,9 +61,9 @@ export default function DataIngestionPage({
           <label>
             <span>Protocolo</span>
             <select value={form.protocol} onChange={(event) => setForm({ ...form, protocol: event.target.value })}>
-              {['TCP', 'UDP', 'ICMP', 'HTTP', 'HTTPS'].map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
+                {protocolOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
             </select>
           </label>
           <label>

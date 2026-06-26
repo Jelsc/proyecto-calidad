@@ -8,12 +8,7 @@ import {
   formatCount,
 } from '../utils/helpers'
 
-export default function IncidentsEvidencePage({
-  dashboardSummary,
-  trafficEvents,
-  recentIncidents,
-  onDataRefresh,
-}) {
+export default function IncidentsEvidencePage({ dashboardSummary, trafficEvents = [], recentIncidents = [], onDataRefresh }) {
   const [form, setForm] = useState(initialIncidentForm)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')

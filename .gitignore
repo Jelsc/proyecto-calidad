@@ -17,6 +17,7 @@ dist/
 
 # Docker
 postgres_data/
+certbot/
 
 # opencode
 openspec/

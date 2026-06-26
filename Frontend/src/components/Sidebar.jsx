@@ -56,7 +56,6 @@ export default function Sidebar({
   identityTags,
   onLogout,
   onNavigate,
-  supportTables = [],
   user,
 }) {
   const [openModuleId, setOpenModuleId] = useState(() => getModuleIdForSection(activeSection))
@@ -114,15 +113,6 @@ export default function Sidebar({
               <span className="chip">JWT</span>
             )}
 
-            {supportTables.length > 0 ? (
-              supportTables.slice(0, 3).map((item) => (
-                <span className="chip subtle" key={item}>
-                  {item}
-                </span>
-              ))
-            ) : (
-              <span className="chip subtle">Catálogos auxiliares</span>
-            )}
           </div>
 
           <button className="secondary-button secondary-button-tight" onClick={onLogout} type="button">

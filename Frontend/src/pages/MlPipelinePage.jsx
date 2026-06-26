@@ -7,13 +7,7 @@ import {
   parseJsonInput,
 } from '../utils/helpers'
 
-export default function MlPipelinePage({
-  detectionResult,
-  trafficEvents,
-  trainingResult,
-  onDetectionResult,
-  onDataRefresh,
-}) {
+export default function MlPipelinePage({ detectionResult, trafficEvents = [], trainingResult, onDetectionResult, onDataRefresh }) {
   const [form, setForm] = useState(initialDetectionForm)
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState('')
