@@ -1,0 +1,19 @@
+.env
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+.venv/
+venv/
+
+# Django
+staticfiles/
+
+# Node
+node_modules/
+dist/
+
+# Docker
+postgres_data/
