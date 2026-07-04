@@ -84,13 +84,12 @@ export default function MlPipelinePage({ detectionResult, trafficEvents = [], tr
           Entrena el modelo y simula detecciones con eventos reales o payloads manuales.
         </p>
 
-        <div className="action-row">
-          <button className="secondary-button" disabled={busy} onClick={handleTrain} type="button">
-            {busy ? 'Entrenando…' : 'Entrenar modelo'}
-          </button>
-        </div>
+        <div className="workflow-panel compact-panel">
+          <div className="workflow-section-head">
+            <strong>Elegir evento a analizar</strong>
+            <span className="muted">Usa un registro cargado o un payload manual</span>
+          </div>
 
-        <form className="module-form" onSubmit={handleSimulate}>
           <div className="form-grid">
             <label>
               <span>Evento base</span>
@@ -101,11 +100,22 @@ export default function MlPipelinePage({ detectionResult, trafficEvents = [], tr
                 <option value="">Usar payload manual</option>
                 {trafficEvents.map((item) => (
                   <option key={item.id} value={item.id}>
-                    Evento #{item.id}
+                    Evento #{item.id} · {item.source_ip} → {item.destination_ip}
                   </option>
                 ))}
               </select>
             </label>
+          </div>
+        </div>
+
+        <div className="action-row">
+          <button className="secondary-button" disabled={busy} onClick={handleTrain} type="button">
+            {busy ? 'Entrenando…' : 'Entrenar modelo'}
+          </button>
+        </div>
+
+        <form className="module-form" onSubmit={handleSimulate}>
+          <div className="form-grid">
             <label>
               <span>IP origen</span>
               <input

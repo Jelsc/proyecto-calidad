@@ -5,10 +5,16 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsAnalystOrAdmin
 
-from .services import FAMILIES, ENGINE_VERSION, classify_threat_family, explain_alert, generate_report, summarize_incident
+from .services import FAMILIES, ENGINE_VERSION, classify_threat_family, explain_alert, generate_report, get_ai_provider_config, summarize_incident
 
 
 def build_ai_contract() -> dict[str, object]:
+    provider_config = get_ai_provider_config()
+    azure_config = provider_config["azure_openai"]
+    model_engine = ENGINE_VERSION
+    if provider_config["active_provider"] == "azure_openai":
+        model_engine = f"azure-openai:{azure_config['deployment']}" if azure_config["deployment"] else "azure-openai"
+
     return {
         "routes": {
             "root": "/api/ai/",
@@ -18,10 +24,16 @@ def build_ai_contract() -> dict[str, object]:
             "generate_report": "/api/ai/report/",
         },
         "model": {
-            "engine": ENGINE_VERSION,
+            "engine": model_engine,
             "fallback": "deterministic_templates",
             "heuristics": False,
             "families": FAMILIES,
+        },
+        "provider": {
+            "requested": provider_config["provider"],
+            "active": provider_config["active_provider"],
+            "fallback": provider_config["fallback_provider"],
+            "azure_openai": azure_config,
         },
     }
 
@@ -33,6 +45,16 @@ def _extract_text(payload: dict, *keys: str) -> str:
             return value
 
     return ""
+
+
+def _compose_contextual_text(payload: dict, *, context_keys: tuple[str, ...], prompt_keys: tuple[str, ...]) -> str:
+    incident_context = _extract_text(payload, *context_keys)
+    prompt = _extract_text(payload, *prompt_keys)
+
+    if incident_context and prompt:
+        return f"Contexto del incidente:\n{incident_context}\n\nPregunta o instrucción:\n{prompt}"
+
+    return incident_context or prompt
 
 
 class AiRootView(APIView):
@@ -69,7 +91,11 @@ class AlertExplanationView(APIView):
         return [IsAuthenticated(), IsAnalystOrAdmin()]
 
     def post(self, request):
-        text = _extract_text(request.data, "alert_text", "text")
+        text = _compose_contextual_text(
+            request.data,
+            context_keys=("alert_text", "incident_text", "incident_context", "text"),
+            prompt_keys=("prompt", "question", "instruction"),
+        )
         if not text:
             return Response({"detail": "alert_text is required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -84,7 +110,11 @@ class IncidentSummaryView(APIView):
         return [IsAuthenticated(), IsAnalystOrAdmin()]
 
     def post(self, request):
-        text = _extract_text(request.data, "incident_text", "text")
+        text = _compose_contextual_text(
+            request.data,
+            context_keys=("incident_text", "incident_context", "text"),
+            prompt_keys=("prompt", "question", "instruction"),
+        )
         if not text:
             return Response({"detail": "incident_text is required."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -99,7 +129,11 @@ class TechnicalReportView(APIView):
         return [IsAuthenticated(), IsAnalystOrAdmin()]
 
     def post(self, request):
-        text = _extract_text(request.data, "incident_text", "text")
+        text = _compose_contextual_text(
+            request.data,
+            context_keys=("incident_text", "incident_context", "text"),
+            prompt_keys=("prompt", "question", "instruction"),
+        )
         if not text:
             return Response({"detail": "incident_text is required."}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -5,10 +5,14 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-change-me")
-DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
 
-allowed_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "*")
+def _env(name: str, default: str = "") -> str:
+    return os.getenv(name, default).strip()
+
+SECRET_KEY = _env("DJANGO_SECRET_KEY", "django-insecure-change-me")
+DEBUG = _env("DJANGO_DEBUG", "1") == "1"
+
+allowed_hosts = _env("DJANGO_ALLOWED_HOSTS", "*")
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(",") if host.strip()]
 
 INSTALLED_APPS = [
@@ -64,11 +68,11 @@ WSGI_APPLICATION = "cybershield.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", "cybershield"),
-        "USER": os.getenv("DB_USER", "cybershield"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "cybershield"),
-        "HOST": os.getenv("DB_HOST", "db"),
-        "PORT": os.getenv("DB_PORT", "5432"),
+        "NAME": _env("DB_NAME", "cybershield"),
+        "USER": _env("DB_USER", "cybershield"),
+        "PASSWORD": _env("DB_PASSWORD", "cybershield"),
+        "HOST": _env("DB_HOST", "db"),
+        "PORT": _env("DB_PORT", "5432"),
     }
 }
 
@@ -89,18 +93,20 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AI_PROVIDER = os.getenv("AI_PROVIDER", "local").strip().lower() or "local"
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "").strip().rstrip("/")
-AZURE_OPENAI_PROJECT = os.getenv("AZURE_OPENAI_PROJECT", "").strip()
-AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "").strip()
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview").strip() or "2024-02-15-preview"
-AZURE_OPENAI_HAS_API_KEY = bool(os.getenv("AZURE_OPENAI_API_KEY", "").strip())
+AI_PROVIDER = _env("AI_PROVIDER", "local").lower() or "local"
+AZURE_OPENAI_ENDPOINT = _env("AZURE_OPENAI_ENDPOINT", "").rstrip("/")
+AZURE_AI_PROJECT_ENDPOINT = _env("AZURE_AI_PROJECT_ENDPOINT", "").rstrip("/")
+AZURE_OPENAI_PROJECT = _env("AZURE_OPENAI_PROJECT", "")
+AZURE_OPENAI_DEPLOYMENT = _env("AZURE_OPENAI_DEPLOYMENT", "")
+AZURE_OPENAI_API_VERSION = _env("AZURE_OPENAI_API_VERSION", "2024-02-15-preview") or "2024-02-15-preview"
+AZURE_OPENAI_HAS_API_KEY = bool(_env("AZURE_OPENAI_API_KEY", ""))
 
 AI_PROVIDER_CONFIG = {
     "provider": AI_PROVIDER,
     "fallback_provider": "local",
     "azure_openai": {
         "endpoint": AZURE_OPENAI_ENDPOINT,
+        "project_endpoint": AZURE_AI_PROJECT_ENDPOINT,
         "project": AZURE_OPENAI_PROJECT,
         "deployment": AZURE_OPENAI_DEPLOYMENT,
         "api_version": AZURE_OPENAI_API_VERSION,
@@ -111,10 +117,10 @@ AI_PROVIDER_CONFIG = {
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 if not DEBUG:
-    _cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    _cors_origins = _env("CORS_ALLOWED_ORIGINS", "")
     CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(",") if o.strip()]
 
-_csrf_origins = os.getenv("CSRF_TRUSTED_ORIGINS", "")
+_csrf_origins = _env("CSRF_TRUSTED_ORIGINS", "")
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins.split(",") if o.strip()]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

@@ -1,37 +1,31 @@
 export const sidebarModules = [
   {
-    id: 'overview',
-    label: 'Resumen',
-    items: [{ id: 'overview', label: 'Panel operativo' }],
+    id: 'operacion',
+    label: 'Operación',
+    items: [
+      { id: 'overview', label: 'Panel operativo' },
+      { id: 'incidents-evidence', label: 'Incidentes y evidencias' },
+    ],
   },
   {
-    id: 'auth-users',
-    label: 'Gestión de usuarios',
-    items: [{ id: 'auth-users', label: 'Acceso y roles' }],
+    id: 'datos-deteccion',
+    label: 'Datos y detección',
+    items: [
+      { id: 'data-ingestion', label: 'Ingesta de datos' },
+      { id: 'ml-pipeline', label: 'Modelo y predicción' },
+    ],
   },
   {
-    id: 'data-ingestion',
-    label: 'Ingesta de datos',
-    items: [{ id: 'data-ingestion', label: 'Eventos y datasets' }],
+    id: 'automatizacion',
+    label: 'Automatización',
+    items: [{ id: 'response-engine', label: 'Respuesta automática' }],
   },
   {
-    id: 'ml-pipeline',
-    label: 'Detección ML',
-    items: [{ id: 'ml-pipeline', label: 'Modelo y predicción' }],
-  },
-  {
-    id: 'response-engine',
-    label: 'Respuesta automática',
-    items: [{ id: 'response-engine', label: 'Acciones de contención' }],
-  },
-  {
-    id: 'incidents-evidence',
-    label: 'Incidentes',
-    items: [{ id: 'incidents-evidence', label: 'Alertas y evidencias' }],
-  },
-  {
-    id: 'dashboard-reports',
-    label: 'Reportes',
-    items: [{ id: 'dashboard-reports', label: 'Indicadores y exportación' }],
+    id: 'administracion',
+    label: 'Administración',
+    items: [
+      { id: 'auth-users', label: 'Usuarios y accesos' },
+      { id: 'dashboard-reports', label: 'Reportes y exportación' },
+    ],
   },
 ]

@@ -276,7 +276,16 @@ export default function App() {
             path="/auth-users"
             element={<AuthUsersPage authSummary={authSummary} health={health} identityTags={identityTags} user={user} />}
           />
-          <Route path="/data-ingestion" element={<DataIngestionPage trafficEvents={trafficEvents} {...sharedPageProps} />} />
+          <Route
+            path="/data-ingestion"
+            element={
+              <DataIngestionPage
+                eventsLoading={dashboardBusy && trafficEvents.length === 0}
+                trafficEvents={trafficEvents}
+                {...sharedPageProps}
+              />
+            }
+          />
           <Route
             path="/ml-pipeline"
             element={

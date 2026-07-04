@@ -19,7 +19,6 @@ function SidebarModule({ activeSection, isOpen, module, onNavigate, onToggle }) 
       >
         <span className="nav-module-toggle-label">{module.label}</span>
         <span className="nav-module-toggle-meta">
-          <span className="nav-module-badge">{module.items.length}</span>
           <span className="nav-module-caret" aria-hidden="true">
             ▾
           </span>
@@ -97,8 +96,7 @@ export default function Sidebar({
             <div>
               <span className="label">Sesión iniciada</span>
               <strong className="sidebar-user-name">{user?.displayName ?? user?.username ?? 'Usuario autenticado'}</strong>
-              <p className="muted compact-copy">{user?.username ?? 'Sesión JWT activa'}</p>
-              <p className="muted compact-copy">{authSummary(user)}</p>
+              <p className="muted compact-copy sidebar-session-meta">{authSummary(user)}</p>
             </div>
           </div>
 
@@ -115,7 +113,7 @@ export default function Sidebar({
 
           </div>
 
-          <button className="secondary-button secondary-button-tight" onClick={onLogout} type="button">
+          <button className="primary-button secondary-button-tight sidebar-logout" onClick={onLogout} type="button">
             Cerrar sesión
           </button>
         </div>

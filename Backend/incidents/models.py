@@ -47,3 +47,23 @@ class Evidence(models.Model):
 
     def __str__(self) -> str:
         return f"{self.evidence_type} for incident {self.incident_id}"
+
+
+class IncidentTimelineEntry(models.Model):
+    class EventType(models.TextChoices):
+        RESPONSE_POLICY = "response_policy", "Response Policy"
+        RESPONSE_ACTION = "response_action", "Response Action"
+        CONTAINMENT_UPDATE = "containment_update", "Containment Update"
+
+    incident = models.ForeignKey(Incident, on_delete=models.CASCADE, related_name="timeline_entries")
+    event_type = models.CharField(max_length=64, choices=EventType.choices)
+    message = models.TextField()
+    source_ref = models.CharField(max_length=128, blank=True)
+    payload = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.event_type} for incident {self.incident_id}"

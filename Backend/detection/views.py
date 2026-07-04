@@ -5,10 +5,13 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsAnalystOrAdmin
 from events.models import TrafficEvent
+from incidents.services import upsert_detection_incident
 
 from .models import DetectionResult
 from .serializers import DetectionResultSerializer
-from .model_service import ENGINE_VERSION, DetectionModelNotReady, MIN_TRAINING_ROWS, predict, train_from_events
+from .model_service import ENGINE_VERSION, DetectionModelNotReady, MIN_TRAINING_ROWS, train_from_events
+from .risk import RISK_SCALE
+from .services import build_detection_payload, simulate_detection
 
 
 def build_detection_contract() -> dict:
@@ -16,54 +19,24 @@ def build_detection_contract() -> dict:
         "routes": {
             "train": "/api/detection/train/",
             "simulate": "/api/detection/simulate/",
+            "incidents": "/api/incidents/",
         },
         "model": {
             "engine": ENGINE_VERSION,
             "minimum_training_rows": MIN_TRAINING_ROWS,
             "heuristics": False,
         },
+        "risk_scale": RISK_SCALE,
+        "alerting": {
+            "container": "Incident",
+            "trigger_levels": ["high", "critical"],
+            "update_strategy": "upsert_by_source_event_or_detection",
+        },
         "readiness": {
             "insufficient_rows_status": status.HTTP_409_CONFLICT,
             "fallback": "none",
         },
     }
-
-
-def build_detection_payload(request_data: dict, event: TrafficEvent | None = None) -> dict:
-    payload: dict = {}
-
-    if event is not None:
-        payload.update(
-            {
-                "source_ip": event.source_ip,
-                "destination_ip": event.destination_ip,
-                "protocol": event.protocol,
-                "destination_port": event.destination_port,
-                "payload": event.payload,
-                "metadata": event.metadata or {},
-            }
-        )
-
-    request_payload = request_data.get("payload")
-    if isinstance(request_payload, dict):
-        payload.update(request_payload)
-
-    if not payload:
-        payload = {
-            key: value
-            for key, value in request_data.items()
-            if key not in {"event_id", "payload"}
-        }
-
-    metadata = payload.get("metadata")
-    if not isinstance(metadata, dict):
-        payload["metadata"] = {}
-
-    return payload
-
-
-def simulate_detection(payload: dict) -> dict:
-    return predict(payload)
 
 
 class DetectionSimulationView(APIView):
@@ -106,6 +79,14 @@ class DetectionSimulationView(APIView):
             is_high_risk=result_data["is_high_risk"],
             engine_version=result_data["engine_version"],
         )
+
+        upsert_detection_incident(
+            detection=result,
+            risk_level=result_data["risk_level"],
+            anomaly_family=result_data["anomaly_family"],
+            reason=result_data["reason"],
+        )
+
         serializer = DetectionResultSerializer(result)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

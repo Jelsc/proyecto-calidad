@@ -57,6 +57,67 @@ export const initialTrafficEventForm = {
   metadata: '',
 }
 
+export const trafficIngestionExamples = [
+  {
+    id: 'benign-check',
+    label: 'Ejemplo benigno',
+    description: 'Un solo objeto JSON con una verificación normal de servicio.',
+    payload: {
+      source_ip: '10.0.0.21',
+      destination_ip: '10.0.1.15',
+      protocol: 'HTTPS',
+      destination_port: 443,
+      payload: {
+        method: 'GET',
+        path: '/health',
+        status: 200,
+        latency_ms: 18,
+      },
+      metadata: {
+        scenario: 'health-check',
+        service: 'api-gateway',
+        tag: 'benign',
+      },
+    },
+  },
+  {
+    id: 'suspicious-burst',
+    label: 'Ejemplo sospechoso',
+    description: 'Un array de eventos para simular actividad lateral y un intento de credenciales.',
+    payload: [
+      {
+        source_ip: '203.0.113.44',
+        destination_ip: '10.0.1.25',
+        protocol: 'TCP',
+        destination_port: 445,
+        payload: 'SMB negotiation attempt from external host',
+        metadata: {
+          scenario: 'lateral-movement',
+          severity_hint: 'high',
+          tag: 'suspicious',
+        },
+      },
+      {
+        source_ip: '203.0.113.44',
+        destination_ip: '10.0.1.26',
+        protocol: 'HTTP',
+        destination_port: 80,
+        payload: {
+          method: 'POST',
+          path: '/admin/login',
+          user_agent: 'curl/8.0.1',
+          body: 'username=admin&password=admin',
+        },
+        metadata: {
+          scenario: 'credential-stuffing',
+          suspicious: true,
+          tag: 'suspicious',
+        },
+      },
+    ],
+  },
+]
+
 export const initialDetectionForm = {
   eventId: '',
   sourceIp: '',
@@ -205,6 +266,44 @@ export function safeNumber(value) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+export function prettyJson(value) {
+  return JSON.stringify(value, null, 2)
+}
+
+export function parseTrafficIngestionPayload(value) {
+  const trimmed = String(value ?? '').trim()
+
+  if (!trimmed) {
+    throw new Error('Pegá o cargá un JSON antes de enviar.')
+  }
+
+  let parsed
+
+  try {
+    parsed = JSON.parse(trimmed)
+  } catch {
+    throw new Error('El contenido no es un JSON válido.')
+  }
+
+  if (Array.isArray(parsed)) {
+    if (parsed.length === 0) {
+      throw new Error('El array JSON no puede estar vacío.')
+    }
+
+    if (parsed.some((item) => !item || typeof item !== 'object' || Array.isArray(item))) {
+      throw new Error('Cada elemento del array debe ser un objeto JSON.')
+    }
+
+    return parsed
+  }
+
+  if (parsed && typeof parsed === 'object') {
+    return parsed
+  }
+
+  throw new Error('El JSON debe ser un objeto o un array de objetos.')
+}
+
 export function parseJsonInput(value, fallbackKey) {
   const trimmed = String(value ?? '').trim()
 
@@ -233,6 +332,16 @@ export function formatCount(value) {
   return new Intl.NumberFormat('es-ES').format(Number(value ?? 0))
 }
 
+export function formatDurationSeconds(value) {
+  const numeric = Number(value)
+
+  if (!Number.isFinite(numeric)) {
+    return '—'
+  }
+
+  return `${numeric.toFixed(2)} s`
+}
+
 export function formatSeverity(value) {
   const normalized = String(value ?? '').toLowerCase()
   return severityLabels[normalized] ?? value ?? 'Sin dato'
@@ -247,23 +356,23 @@ export function buildKpis(summary) {
   return [
     {
       label: 'Eventos analizados',
-      value: formatCount(summary?.events_total),
-      delta: 'Ingesta activa',
+      value: formatCount(summary?.events_analyzed_total ?? summary?.events_total),
+      delta: 'Scoring completado',
     },
     {
-      label: 'Detecciones de alto riesgo',
-      value: formatCount(summary?.high_risk_detections),
-      delta: 'Modelo ML',
+      label: 'Alertas activas',
+      value: formatCount(summary?.active_alerts_total ?? summary?.open_incidents),
+      delta: 'Incidentes en curso',
     },
     {
-      label: 'Incidentes abiertos',
-      value: formatCount(summary?.open_incidents),
-      delta: 'Seguimiento activo',
+      label: 'Hosts sospechosos',
+      value: formatCount(summary?.suspicious_hosts_total),
+      delta: 'Detección de riesgo',
     },
     {
-      label: 'Acciones de respuesta',
-      value: formatCount(summary?.response_actions_total),
-      delta: 'Trazabilidad controlada',
+      label: 'Hosts aislados',
+      value: formatCount(summary?.isolated_hosts_total),
+      delta: 'Respuesta controlada',
     },
   ]
 }

@@ -3,10 +3,14 @@ from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
+from unittest.mock import Mock
 
-from incidents.models import Incident
+from detection.models import DetectionResult
+from events.models import TrafficEvent
+from incidents.models import Evidence, Incident, IncidentTimelineEntry
 
 from .models import ResponseAction
+from .services import apply_controlled_response_policy, select_response_actions
 
 
 User = get_user_model()
@@ -77,3 +81,74 @@ class ResponseActionRuntimeTests(TestCase):
         self.assertEqual(response.json()["status"], ResponseAction.Status.SIMULATED)
         self.assertTrue(response.json()["simulated"])
         self.assertEqual(response.json()["control_mode"], "controlled")
+
+    def test_policy_selection_uses_risk_and_anomaly_context(self):
+        context = {
+            "source_ip": "10.0.0.10",
+            "destination_ip": "10.0.0.11",
+            "destination_port": 445,
+            "source_private": True,
+            "destination_private": True,
+            "same_subnet_24": True,
+        }
+
+        actions = select_response_actions(risk_level=Incident.Severity.CRITICAL, anomaly_family="lateral_movement", context=context)
+
+        self.assertEqual(
+            [action.action_type for action in actions],
+            [
+                ResponseAction.ActionType.ISOLATE_HOST,
+                ResponseAction.ActionType.MARK_HOST_COMPROMISED,
+                ResponseAction.ActionType.CUT_LATERAL_COMMUNICATION,
+                ResponseAction.ActionType.LIMIT_TRAFFIC,
+                ResponseAction.ActionType.BLOCK_IP,
+                ResponseAction.ActionType.NOTIFY_ADMIN,
+            ],
+        )
+
+    def test_policy_execution_records_audit_and_stays_simulated(self):
+        event = TrafficEvent.objects.create(
+            source_ip="10.0.0.50",
+            destination_ip="10.0.0.51",
+            protocol="tcp",
+            destination_port=445,
+            payload="lateral traffic",
+            metadata={"flag": True},
+            ingested_by=self.user.username,
+        )
+        detection = DetectionResult.objects.create(
+            event=event,
+            score=0.96,
+            label="critical",
+            reason="family=lateral_movement; ml_score=0.9900; normalized_risk=0.96; risk_level=critical; protocol=TCP; destination_port=445; same_subnet_24=True",
+            is_high_risk=True,
+            payload_snapshot={"flag": True},
+            engine_version="ml-isoforest-v1",
+        )
+
+        result = apply_controlled_response_policy(
+            incident=self.incident,
+            detection=detection,
+            risk_level=Incident.Severity.CRITICAL,
+            anomaly_family="lateral_movement",
+            reason=detection.reason,
+            network_executor=Mock(),
+        )
+
+        self.assertEqual(ResponseAction.objects.count(), 6)
+        self.assertEqual(Evidence.objects.count(), 7)
+        self.assertEqual(IncidentTimelineEntry.objects.count(), 7)
+        self.assertEqual(len(result["actions"]), 6)
+        self.assertTrue(all(action.simulated for action in result["actions"]))
+        self.assertTrue(all(action.status == ResponseAction.Status.SIMULATED for action in result["actions"]))
+        self.assertEqual(result["actions"][0].policy_rule, "risk-context-containment-v1")
+        result_executor = Mock()
+        apply_controlled_response_policy(
+            incident=self.incident,
+            detection=detection,
+            risk_level=Incident.Severity.CRITICAL,
+            anomaly_family="lateral_movement",
+            reason=detection.reason,
+            network_executor=result_executor,
+        )
+        result_executor.assert_not_called()

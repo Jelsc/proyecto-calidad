@@ -52,6 +52,30 @@ def _fallback_excerpt(text: str, limit: int = 120, empty_message: str = "No text
     return clean_text[:limit].rstrip()
 
 
+def _split_contextual_payload(text: str) -> tuple[str, str]:
+    clean_text = _normalize_text(text)
+    if not clean_text:
+        return "", ""
+
+    context_marker = "Contexto del incidente:"
+    prompt_marker = "Pregunta o instrucción:"
+
+    context_text = clean_text
+    prompt_text = ""
+
+    if context_marker in clean_text and prompt_marker in clean_text:
+        after_context = clean_text.split(context_marker, 1)[1].strip()
+        context_text, prompt_text = after_context.split(prompt_marker, 1)
+        context_text = context_text.strip()
+        prompt_text = prompt_text.strip()
+    elif prompt_marker in clean_text:
+        before_prompt, prompt_text = clean_text.split(prompt_marker, 1)
+        context_text = before_prompt.strip()
+        prompt_text = prompt_text.strip()
+
+    return context_text, prompt_text
+
+
 def _build_classifier() -> Pipeline:
     texts = [item[0] for item in _CLASSIFIER_TRAINING_DATA]
     labels = [item[1] for item in _CLASSIFIER_TRAINING_DATA]
@@ -72,16 +96,19 @@ def get_ai_provider_config() -> dict[str, Any]:
     raw_config = getattr(settings, "AI_PROVIDER_CONFIG", {})
     raw_azure_config = raw_config.get("azure_openai", {}) if isinstance(raw_config, dict) else {}
 
-    provider = str(getattr(settings, "AI_PROVIDER", raw_config.get("provider", "local"))).strip().lower() or "local"
-    fallback_provider = str(raw_config.get("fallback_provider", "local")).strip().lower() or "local"
-    endpoint = str(getattr(settings, "AZURE_OPENAI_ENDPOINT", raw_azure_config.get("endpoint", ""))).strip().rstrip("/")
-    project = str(getattr(settings, "AZURE_OPENAI_PROJECT", raw_azure_config.get("project", ""))).strip()
-    deployment = str(getattr(settings, "AZURE_OPENAI_DEPLOYMENT", raw_azure_config.get("deployment", ""))).strip()
+    provider = str(getattr(settings, "AI_PROVIDER", "") or raw_config.get("provider", "local")).strip().lower() or "local"
+    fallback_provider = str(getattr(settings, "AI_PROVIDER_FALLBACK", "") or raw_config.get("fallback_provider", "local")).strip().lower() or "local"
+    endpoint = str(getattr(settings, "AZURE_OPENAI_ENDPOINT", "") or raw_azure_config.get("endpoint", "")).strip().rstrip("/")
+    project_endpoint = str(getattr(settings, "AZURE_AI_PROJECT_ENDPOINT", "") or raw_azure_config.get("project_endpoint", "")).strip().rstrip("/")
+
+    project = str(getattr(settings, "AZURE_OPENAI_PROJECT", "") or raw_azure_config.get("project", "")).strip()
+    deployment = str(getattr(settings, "AZURE_OPENAI_DEPLOYMENT", "") or raw_azure_config.get("deployment", "")).strip()
     api_version = (
-        str(getattr(settings, "AZURE_OPENAI_API_VERSION", raw_azure_config.get("api_version", AZURE_DEFAULT_API_VERSION))).strip()
+        str(getattr(settings, "AZURE_OPENAI_API_VERSION", "") or raw_azure_config.get("api_version", AZURE_DEFAULT_API_VERSION)).strip()
         or AZURE_DEFAULT_API_VERSION
     )
-    has_api_key = bool(getattr(settings, "AZURE_OPENAI_HAS_API_KEY", raw_azure_config.get("has_api_key", False)))
+    api_key = str(getattr(settings, "AZURE_OPENAI_API_KEY", "")).strip()
+    has_api_key = bool(api_key or getattr(settings, "AZURE_OPENAI_HAS_API_KEY", False) or raw_azure_config.get("has_api_key", False))
 
     ready = provider in AZURE_PROVIDER_NAMES and bool(endpoint and project and deployment and has_api_key)
 
@@ -91,6 +118,7 @@ def get_ai_provider_config() -> dict[str, Any]:
         "fallback_provider": fallback_provider,
         "azure_openai": {
             "endpoint": endpoint,
+            "project_endpoint": project_endpoint,
             "project": project,
             "deployment": deployment,
             "api_version": api_version,
@@ -166,25 +194,48 @@ class AiService:
             return {"family": "unknown", "confidence": 0.0, "engine": "fallback-unknown"}
 
     def _local_explain_alert(self, text: str) -> str:
-        excerpt = _fallback_excerpt(text, empty_message="No alert text was provided.")
-        return (
-            f"Alert explanation: {excerpt} "
-            "Recommended action: preserve evidence, confirm the affected host, and escalate if activity continues."
+        context, prompt = _split_contextual_payload(text)
+        prompt_excerpt = _fallback_excerpt(prompt, limit=90, empty_message="¿Qué causó esta alerta?")
+        context_excerpt = _fallback_excerpt(context, limit=160, empty_message="No alert text was provided.")
+        if not prompt.strip():
+            return (
+                f"Explicación de alerta: {context_excerpt} "
+                "Acción recomendada: preservar evidencia, confirmar el host afectado y escalar si la actividad continúa."
+            )
+
+        return "\n".join(
+            [
+                f"Explicación de alerta: {prompt_excerpt}",
+                f"Contexto relevante: {context_excerpt}",
+                "Acción recomendada: preservar evidencia, confirmar el host afectado y escalar si la actividad continúa.",
+            ]
         )
 
     def _local_summarize_incident(self, text: str) -> str:
-        excerpt = _fallback_excerpt(text)
-        return f"Incident summary: {excerpt}"
+        context, prompt = _split_contextual_payload(text)
+        context_excerpt = _fallback_excerpt(context, empty_message="No text was provided.")
+        prompt_excerpt = _fallback_excerpt(prompt, limit=90, empty_message="Resumen operativo del incidente")
+        if not prompt.strip():
+            return f"Resumen de incidente: {context_excerpt}"
 
-    def _local_generate_report(self, text: str) -> str:
-        excerpt = _fallback_excerpt(text)
-        summary = self._local_summarize_incident(text)
         return "\n".join(
             [
-                "Technical report",
-                f"Summary: {summary.replace('Incident summary: ', '', 1)}",
-                f"Observed indicators: {excerpt}",
-                "Recommended actions: preserve evidence, isolate affected assets, review logs, and continue scoping.",
+                f"Resumen de incidente: {context_excerpt}",
+                f"Enfoque: {prompt_excerpt}",
+            ]
+        )
+
+    def _local_generate_report(self, text: str) -> str:
+        context, prompt = _split_contextual_payload(text)
+        context_excerpt = _fallback_excerpt(context, limit=180, empty_message="No text was provided.")
+        prompt_excerpt = _fallback_excerpt(prompt, limit=90, empty_message="Generar reporte técnico")
+        return "\n".join(
+            [
+                "Reporte técnico",
+                f"Solicitud: {prompt_excerpt}",
+                f"Resumen: {context_excerpt}",
+                f"Indicadores observados: {context_excerpt}",
+                "Acciones recomendadas: preservar evidencia, aislar los activos afectados, revisar registros y continuar el análisis.",
             ]
         )
 
@@ -213,15 +264,15 @@ class AiService:
         }
 
     def _azure_explain_alert(self, text: str) -> str:
-        system_prompt = "Write a concise operational alert explanation with one recommended action."
+        system_prompt = "Escribe una explicación breve de la alerta en español, con una sola acción recomendada."
         return self._call_azure_chat_completion(system_prompt, text)
 
     def _azure_summarize_incident(self, text: str) -> str:
-        system_prompt = "Write a concise incident summary with no bullet points."
+        system_prompt = "Escribe un resumen breve del incidente en español, sin viñetas."
         return self._call_azure_chat_completion(system_prompt, text)
 
     def _azure_generate_report(self, text: str) -> str:
-        system_prompt = "Write a short technical incident report with summary, indicators, and recommended actions."
+        system_prompt = "Escribe un reporte técnico breve en español con resumen, indicadores observados y acciones recomendadas."
         return self._call_azure_chat_completion(system_prompt, text)
 
     def classify_threat_family(self, text: str) -> dict[str, Any]:

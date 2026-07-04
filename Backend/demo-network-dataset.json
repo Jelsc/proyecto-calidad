@@ -1,0 +1,268 @@
+{
+  "rows": [
+    {
+      "source_ip": "10.0.0.10",
+      "destination_ip": "10.0.0.20",
+      "protocol": "TCP",
+      "destination_port": 443,
+      "payload": "GET /api/health HTTP/1.1 Host: intranet.local",
+      "metadata": {"family": "benign", "scenario": "internal web request"}
+    },
+    {
+      "source_ip": "10.0.0.11",
+      "destination_ip": "10.0.0.21",
+      "protocol": "TCP",
+      "destination_port": 80,
+      "payload": "GET /dashboard HTTP/1.1 Host: portal.local",
+      "metadata": {"family": "benign", "scenario": "portal browsing"}
+    },
+    {
+      "source_ip": "10.0.0.12",
+      "destination_ip": "10.0.0.53",
+      "protocol": "UDP",
+      "destination_port": 53,
+      "payload": "dns query for update.local",
+      "metadata": {"family": "benign", "scenario": "dns lookup"}
+    },
+    {
+      "source_ip": "10.0.0.13",
+      "destination_ip": "10.0.0.60",
+      "protocol": "TCP",
+      "destination_port": 25,
+      "payload": "smtp handshake from mail relay",
+      "metadata": {"family": "benign", "scenario": "mail relay"}
+    },
+    {
+      "source_ip": "10.0.0.14",
+      "destination_ip": "10.0.0.70",
+      "protocol": "TCP",
+      "destination_port": 3389,
+      "payload": "remote desktop session by helpdesk",
+      "metadata": {"family": "benign", "scenario": "helpdesk remote support"}
+    },
+    {
+      "source_ip": "10.0.0.15",
+      "destination_ip": "10.0.0.80",
+      "protocol": "TCP",
+      "destination_port": 445,
+      "payload": "file share sync from backup agent",
+      "metadata": {"family": "benign", "scenario": "backup sync"}
+    },
+    {
+      "source_ip": "198.51.100.10",
+      "destination_ip": "10.0.1.25",
+      "protocol": "TCP",
+      "destination_port": 443,
+      "payload": "burst of 9000 requests per minute hitting the edge service",
+      "metadata": {"family": "ddos", "scenario": "volumetric flood"}
+    },
+    {
+      "source_ip": "198.51.100.11",
+      "destination_ip": "10.0.1.26",
+      "protocol": "TCP",
+      "destination_port": 80,
+      "payload": "sustained connection flood with repeated GET /login requests",
+      "metadata": {"family": "ddos", "scenario": "web request flood"}
+    },
+    {
+      "source_ip": "198.51.100.12",
+      "destination_ip": "10.0.1.27",
+      "protocol": "UDP",
+      "destination_port": 443,
+      "payload": "syn flood and packet spray targeting the gateway",
+      "metadata": {"family": "ddos", "scenario": "syn flood"}
+    },
+    {
+      "source_ip": "198.51.100.13",
+      "destination_ip": "10.0.1.28",
+      "protocol": "TCP",
+      "destination_port": 8080,
+      "payload": "massive burst from many sources against the app proxy",
+      "metadata": {"family": "ddos", "scenario": "distributed burst"}
+    },
+    {
+      "source_ip": "198.51.100.14",
+      "destination_ip": "10.0.1.29",
+      "protocol": "TCP",
+      "destination_port": 8443,
+      "payload": "repeated TLS handshake failures and high request rate",
+      "metadata": {"family": "ddos", "scenario": "tls exhaustion"}
+    },
+    {
+      "source_ip": "198.51.100.15",
+      "destination_ip": "10.0.1.30",
+      "protocol": "TCP",
+      "destination_port": 443,
+      "payload": "volumetric traffic surge and load balancer saturation",
+      "metadata": {"family": "ddos", "scenario": "edge saturation"}
+    },
+    {
+      "source_ip": "10.0.2.10",
+      "destination_ip": "10.0.2.11",
+      "protocol": "TCP",
+      "destination_port": 445,
+      "payload": "workstation scanning file shares and enumerating hosts",
+      "metadata": {"family": "worm", "scenario": "internal spread"}
+    },
+    {
+      "source_ip": "10.0.2.12",
+      "destination_ip": "10.0.2.13",
+      "protocol": "TCP",
+      "destination_port": 3389,
+      "payload": "self-spreading malware probing remote desktop services",
+      "metadata": {"family": "worm", "scenario": "lateral probing"}
+    },
+    {
+      "source_ip": "10.0.2.14",
+      "destination_ip": "10.0.2.15",
+      "protocol": "TCP",
+      "destination_port": 1433,
+      "payload": "worm attempting privilege movement through internal services",
+      "metadata": {"family": "worm", "scenario": "propagation"}
+    },
+    {
+      "source_ip": "10.0.2.16",
+      "destination_ip": "10.0.2.17",
+      "protocol": "UDP",
+      "destination_port": 53,
+      "payload": "scanning multiple hosts for network shares and open ports",
+      "metadata": {"family": "worm", "scenario": "host scan"}
+    },
+    {
+      "source_ip": "10.0.2.18",
+      "destination_ip": "10.0.2.19",
+      "protocol": "TCP",
+      "destination_port": 21,
+      "payload": "self-replicating payload looking for writable services",
+      "metadata": {"family": "worm", "scenario": "service scan"}
+    },
+    {
+      "source_ip": "10.0.2.20",
+      "destination_ip": "10.0.2.21",
+      "protocol": "TCP",
+      "destination_port": 445,
+      "payload": "worm beaconing after host-to-host propagation",
+      "metadata": {"family": "worm", "scenario": "beacon propagation"}
+    },
+    {
+      "source_ip": "10.0.3.10",
+      "destination_ip": "203.0.113.50",
+      "protocol": "TCP",
+      "destination_port": 443,
+      "payload": "trojan opens backdoor and checks in with remote controller",
+      "metadata": {"family": "trojan", "scenario": "c2 beacon"}
+    },
+    {
+      "source_ip": "10.0.3.11",
+      "destination_ip": "203.0.113.51",
+      "protocol": "TCP",
+      "destination_port": 8443,
+      "payload": "fake update launched a hidden backdoor process",
+      "metadata": {"family": "trojan", "scenario": "dropper backdoor"}
+    },
+    {
+      "source_ip": "10.0.3.12",
+      "destination_ip": "203.0.113.52",
+      "protocol": "TCP",
+      "destination_port": 443,
+      "payload": "malicious utility opened a persistent remote shell",
+      "metadata": {"family": "trojan", "scenario": "remote shell"}
+    },
+    {
+      "source_ip": "10.0.3.13",
+      "destination_ip": "203.0.113.53",
+      "protocol": "TCP",
+      "destination_port": 8080,
+      "payload": "payload staged after user executed infected installer",
+      "metadata": {"family": "trojan", "scenario": "infected installer"}
+    },
+    {
+      "source_ip": "10.0.4.10",
+      "destination_ip": "203.0.113.60",
+      "protocol": "TCP",
+      "destination_port": 443,
+      "payload": "shared files encrypted and ransom note prepared",
+      "metadata": {"family": "ransomware", "scenario": "file encryption"}
+    },
+    {
+      "source_ip": "10.0.4.11",
+      "destination_ip": "203.0.113.61",
+      "protocol": "TCP",
+      "destination_port": 8443,
+      "payload": "backup volumes locked and recovery demanded by attacker",
+      "metadata": {"family": "ransomware", "scenario": "backup encryption"}
+    },
+    {
+      "source_ip": "10.0.4.12",
+      "destination_ip": "203.0.113.62",
+      "protocol": "TCP",
+      "destination_port": 445,
+      "payload": "mass file rename and encryption activity on shared storage",
+      "metadata": {"family": "ransomware", "scenario": "storage encryption"}
+    },
+    {
+      "source_ip": "10.0.5.10",
+      "destination_ip": "203.0.113.70",
+      "protocol": "TCP",
+      "destination_port": 443,
+      "payload": "large outbound transfer and archive staging indicated a leak",
+      "metadata": {"family": "exfiltration", "scenario": "data leak"}
+    },
+    {
+      "source_ip": "10.0.5.11",
+      "destination_ip": "203.0.113.71",
+      "protocol": "TCP",
+      "destination_port": 8443,
+      "payload": "database dump compressed and uploaded to external destination",
+      "metadata": {"family": "exfiltration", "scenario": "db exfiltration"}
+    },
+    {
+      "source_ip": "10.0.5.12",
+      "destination_ip": "203.0.113.72",
+      "protocol": "TCP",
+      "destination_port": 22,
+      "payload": "staged export sent over encrypted tunnel outside the network",
+      "metadata": {"family": "exfiltration", "scenario": "secure tunnel leak"}
+    },
+    {
+      "source_ip": "10.0.5.13",
+      "destination_ip": "203.0.113.73",
+      "protocol": "UDP",
+      "destination_port": 53,
+      "payload": "dns tunneling used to move data out of the environment",
+      "metadata": {"family": "exfiltration", "scenario": "dns tunnel"}
+    },
+    {
+      "source_ip": "10.0.6.10",
+      "destination_ip": "10.0.6.20",
+      "protocol": "TCP",
+      "destination_port": 445,
+      "payload": "credential reuse followed by internal host pivot",
+      "metadata": {"family": "lateral_movement", "scenario": "pivot"}
+    },
+    {
+      "source_ip": "10.0.6.11",
+      "destination_ip": "10.0.6.21",
+      "protocol": "TCP",
+      "destination_port": 3389,
+      "payload": "attacker moved laterally between internal systems",
+      "metadata": {"family": "lateral_movement", "scenario": "remote pivot"}
+    },
+    {
+      "source_ip": "10.0.6.12",
+      "destination_ip": "10.0.6.22",
+      "protocol": "TCP",
+      "destination_port": 5985,
+      "payload": "privileged remote execution used for lateral spread",
+      "metadata": {"family": "lateral_movement", "scenario": "remote exec"}
+    },
+    {
+      "source_ip": "10.0.6.13",
+      "destination_ip": "10.0.6.23",
+      "protocol": "TCP",
+      "destination_port": 445,
+      "payload": "internal scanning and repeated authentication across hosts",
+      "metadata": {"family": "lateral_movement", "scenario": "host-to-host auth"}
+    }
+  ]
+}

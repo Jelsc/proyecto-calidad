@@ -6,8 +6,10 @@ from rest_framework.test import APIClient
 
 from detection.models import DetectionResult
 from events.models import TrafficEvent
+from .services import upsert_detection_incident
 
-from .models import Incident
+from .models import Evidence, Incident, IncidentTimelineEntry
+from response_engine.models import ResponseAction
 
 
 User = get_user_model()
@@ -114,3 +116,37 @@ class IncidentRuntimeTests(TestCase):
         self.assertEqual(incident.detection_id, detection.id)
         self.assertEqual(incident.severity, Incident.Severity.CRITICAL)
         self.assertEqual(incident.status, Incident.Status.OPEN)
+
+    def test_high_risk_detection_upsert_records_controlled_response_audit(self):
+        event = TrafficEvent.objects.create(
+            source_ip="10.1.0.10",
+            destination_ip="10.1.0.11",
+            protocol="tcp",
+            destination_port=445,
+            payload="lateral movement",
+            metadata={"segment": "internal"},
+            ingested_by=self.user.username,
+        )
+        detection = DetectionResult.objects.create(
+            event=event,
+            score=0.91,
+            label="critical",
+            reason="family=lateral_movement; ml_score=0.9100; normalized_risk=0.91; risk_level=critical; protocol=TCP; destination_port=445; same_subnet_24=True",
+            is_high_risk=True,
+            payload_snapshot={"segment": "internal"},
+            engine_version="ml-isoforest-v1",
+        )
+
+        incident = upsert_detection_incident(
+            detection=detection,
+            risk_level=Incident.Severity.CRITICAL,
+            anomaly_family="lateral_movement",
+            reason=detection.reason,
+        )
+
+        self.assertIsNotNone(incident)
+        self.assertEqual(incident.severity, Incident.Severity.CRITICAL)
+        self.assertEqual(ResponseAction.objects.count(), 6)
+        self.assertEqual(Evidence.objects.count(), 7)
+        self.assertEqual(IncidentTimelineEntry.objects.count(), 7)
+        self.assertTrue(ResponseAction.objects.filter(action_type=ResponseAction.ActionType.NOTIFY_ADMIN).exists())

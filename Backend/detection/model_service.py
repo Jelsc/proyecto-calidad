@@ -10,6 +10,8 @@ from django.utils import timezone
 
 from events.models import TrafficEvent
 
+from .risk import classify_detection_risk
+
 
 ENGINE_VERSION = "ml-isoforest-v1"
 MIN_TRAINING_ROWS = 20
@@ -206,7 +208,10 @@ def extract_feature_vector(payload: dict[str, Any]) -> tuple[list[float], dict[s
         "metadata_key_count": len(metadata),
         "source_private": bool(source_private),
         "destination_private": bool(destination_private),
+        "same_private_class": bool(source_private and destination_private),
         "same_subnet_24": bool(same_subnet_24),
+        "payload_uppercase_ratio": uppercase_ratio,
+        "payload_digit_count": digit_count,
     }
     return features, feature_summary
 
@@ -316,27 +321,19 @@ def predict(payload: dict[str, Any]) -> dict[str, Any]:
     span = max(abs(ceiling - floor), 1e-6)
     risk_score = 1.0 - ((decision_score - floor) / span)
     risk_score = float(np.clip(risk_score, 0.0, 1.0))
-    threshold = float(bundle.get("score_threshold", floor))
-    is_high_risk = bool(decision_score <= threshold or risk_score >= 0.7)
-
-    if risk_score >= 0.7:
-        label = "high_risk"
-    elif risk_score >= 0.4:
-        label = "medium_risk"
-    else:
-        label = "low_risk"
-
-    reason = (
-        f"IsolationForest anomaly score={decision_score:.4f}; threshold={threshold:.4f}; "
-        f"payload_length={feature_summary['payload_length']}; protocol={feature_summary['protocol']}; "
-        f"destination_port={feature_summary['destination_port'] or 'n/a'}; metadata_keys={feature_summary['metadata_key_count']}"
+    assessment = classify_detection_risk(
+        decision_score=decision_score,
+        risk_score=risk_score,
+        feature_summary=feature_summary,
     )
 
     return {
         "score": round(risk_score, 2),
-        "label": label,
-        "reason": reason,
-        "is_high_risk": is_high_risk,
+        "label": assessment["risk_level"],
+        "risk_level": assessment["risk_level"],
+        "anomaly_family": assessment["anomaly_family"],
+        "reason": assessment["reason"],
+        "is_high_risk": assessment["should_alert"],
         "engine_version": bundle.get("engine_version", ENGINE_VERSION),
         "model_decision_score": round(decision_score, 4),
         "training_rows": bundle.get("training_rows", 0),

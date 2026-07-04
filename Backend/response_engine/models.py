@@ -6,8 +6,12 @@ from incidents.models import Incident
 class ResponseAction(models.Model):
     class ActionType(models.TextChoices):
         ALERT = "alert", "Alert"
+        NOTIFY_ADMIN = "notify_admin", "Notify Admin"
         ISOLATE_HOST = "isolate_host", "Isolate Host"
         BLOCK_IP = "block_ip", "Block IP"
+        LIMIT_TRAFFIC = "limit_traffic", "Limit Traffic"
+        CUT_LATERAL_COMMUNICATION = "cut_lateral_communication", "Cut Lateral Communication"
+        MARK_HOST_COMPROMISED = "mark_host_compromised", "Mark Host Compromised"
         SUSPEND_USER = "suspend_user", "Suspend User"
 
     class Status(models.TextChoices):
@@ -19,6 +23,8 @@ class ResponseAction(models.Model):
     action_type = models.CharField(max_length=32, choices=ActionType.choices)
     target_value = models.CharField(max_length=128, blank=True)
     notes = models.TextField(blank=True)
+    policy_rule = models.CharField(max_length=64, default="manual_controlled_policy")
+    decision_context = models.JSONField(default=dict, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.SIMULATED)
     simulated = models.BooleanField(default=True)
     control_mode = models.CharField(max_length=32, default="controlled")
