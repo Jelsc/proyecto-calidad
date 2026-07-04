@@ -637,6 +637,9 @@ h3 {
   padding: 12px 14px;
   border: 1px solid transparent;
   font-weight: 600;
+  background: var(--accent-soft);
+  border-color: rgba(36, 87, 214, 0.12);
+  color: var(--text-secondary);
 }
 
 .ingestion-status-note.success {

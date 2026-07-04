@@ -41,7 +41,7 @@ echo "✔ Dummy certificate removed"
 
 # ── Step 4: Request real certificate from Let's Encrypt ───────────
 echo "Requesting Let's Encrypt certificate..."
-$DC run --rm certbot certonly \
+$DC run --rm --entrypoint certbot certbot certonly \
   --webroot -w /var/www/certbot \
   -d "${DOMAINS[0]}" -d "${DOMAINS[1]}" \
   --agree-tos -m "$EMAIL" --no-eff-email
